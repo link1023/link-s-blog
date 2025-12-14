@@ -11,6 +11,9 @@ node_modules
 .DS_Store
 dist-ssr
 coverage
+.vite/
+/.idea
+/.vscode
 *.local
 
 # Editor directories and files
