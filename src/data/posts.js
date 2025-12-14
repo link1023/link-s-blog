@@ -18,8 +18,8 @@ export const posts = [
     },
     {
         id: 2,
-        title: '学习笔记：JavaScript 常见陷阱',
-        excerpt: '整理了一些容易踩坑的点，帮助你写出更健壮的代码。',
+        title: '学习笔记：我不想上班',
+        excerpt: '这个入有点4了',
         content: `
       <p>JavaScript 是一门灵活的语言，但也容易出错。</p>
       <h3>1. 变量提升</h3>

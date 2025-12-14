@@ -32,7 +32,7 @@
       <p>修改 App.vue，添加你的个人信息和文章列表。</p>
       <h3>4. 部署</h3>
       <p>你可以使用 GitHub Pages 或 Vercel 免费部署你的网站。</p>
-    `,date:"2023-10-01"},{id:2,title:"学习笔记：JavaScript 常见陷阱",excerpt:"整理了一些容易踩坑的点，帮助你写出更健壮的代码。",content:`
+    `,date:"2023-10-01"},{id:2,title:"学习笔记：我不想上班",excerpt:"这个入有点4了",content:`
       <p>JavaScript 是一门灵活的语言，但也容易出错。</p>
       <h3>1. 变量提升</h3>
       <p>使用 let 和 const 代替 var 可以避免变量提升带来的困扰。</p>
