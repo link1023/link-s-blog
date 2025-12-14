@@ -3,61 +3,12 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>个人博客 - Link</title>
-      <meta name="description" content="Link 的个人博客，使用 Vite + Vue 3" />
-      <link rel="icon" href="/favicon.ico" />
+    <title>裴青的博客</title>
+    <meta name="description" content="裴青的个人博客，使用 Vite + Vue 3" />
     <script type="module" crossorigin src="/link-s-blog/assets/index-Cfki0UrB.js"></script>
     <link rel="stylesheet" crossorigin href="/link-s-blog/assets/index-UGGlgOyV.css">
   </head>
   <body>
-    <div id="app">
-      <header class="site-header">
-        <div class="container header-inner">
-          <h1 class="site-title">{{ siteTitle }}</h1>
-          <nav class="nav">
-            <a href="#">首页</a>
-            <a href="#about">关于</a>
-            <a href="#contact">联系</a>
-          </nav>
-          <button id="theme-toggle" @click="toggleTheme" :aria-label="themeLabel">{{ themeIcon }}</button>
-        </div>
-      </header>
-
-      <main class="container">
-        <section class="hero">
-          <h2>{{ hero.title }}</h2>
-          <p>{{ hero.subtitle }}</p>
-        </section>
-
-        <section class="posts" aria-label="最新文章">
-          <h3>最新文章</h3>
-          <div class="posts-grid">
-            <article class="post" v-for="post in posts" :key="post.id">
-              <h4 class="post-title">{{ post.title }}</h4>
-              <p class="post-excerpt">{{ post.excerpt }}</p>
-              <a class="read-more" :href="post.url">阅读更多 →</a>
-            </article>
-          </div>
-        </section>
-
-        <section id="about" class="about">
-          <h3>关于我</h3>
-          <p>{{ about }}</p>
-        </section>
-
-        <section id="contact" class="contact">
-          <h3>联系我</h3>
-          <p>邮箱：{{ contact.email }}</p>
-        </section>
-      </main>
-
-      <footer class="site-footer">
-        <div class="container">
-          <p>© {{ new Date().getFullYear() }} Link。欢迎转载，请注明出处。</p>
-        </div>
-      </footer>
-    </div>
-
-      <!-- Vite 会处理下列模块导入（使用 `npm run dev`） -->
+    <div id="app"></div>
   </body>
 </html>
