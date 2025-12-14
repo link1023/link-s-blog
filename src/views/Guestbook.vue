@@ -1,7 +1,7 @@
 <template>
   <div class="guestbook">
     <h2>留言板</h2>
-    <p class="guestbook-intro">欢迎在这里留下您的足迹！留言将作为 GitHub Issue 保存。</p>
+    <p class="guestbook-intro">欢迎在这里留下您的足迹！所有留言实时同步。</p>
 
     <!-- 留言表单 -->
     <div class="message-form">
@@ -43,6 +43,7 @@
       
       <div v-else-if="error" class="error">
         {{ error }}
+        <p class="error-hint">请检查 Supabase 配置是否正确</p>
       </div>
       
       <div v-else-if="messages.length === 0" class="no-messages">
@@ -67,6 +68,8 @@
 </template>
 
 <script>
+import { supabase } from '../supabase'
+
 export default {
   name: 'Guestbook',
   data() {
@@ -78,119 +81,114 @@ export default {
       messages: [],
       loading: true,
       submitting: false,
-      error: null,
-      // GitHub 仓库信息
-      owner: 'link1023',
-      repo: 'link-s-blog',
-      label: 'guestbook' // 用于标记留言的 label
+      error: null
     }
   },
   mounted() {
-    this.loadMessages();
+    this.loadMessages()
+    this.subscribeToMessages()
   },
   methods: {
     async loadMessages() {
-      this.loading = true;
-      this.error = null;
+      this.loading = true
+      this.error = null
       
       try {
-        const response = await fetch(
-          `https://api.github.com/repos/${this.owner}/${this.repo}/issues?labels=${this.label}&state=open&sort=created&direction=desc`
-        );
+        const { data, error } = await supabase
+          .from('guestbook')
+          .select('*')
+          .order('created_at', { ascending: false })
         
-        if (!response.ok) {
-          throw new Error('加载留言失败');
-        }
+        if (error) throw error
         
-        const issues = await response.json();
-        
-        // 解析 issues 为留言格式
-        this.messages = issues.map(issue => {
-          // 从 issue body 中提取昵称和内容
-          const lines = issue.body.split('\n');
-          const name = lines[0]?.replace('**昵称：**', '').trim() || '匿名';
-          const content = lines.slice(2).join('\n').trim();
-          
-          return {
-            id: issue.number,
-            name: name,
-            content: content,
-            created_at: issue.created_at
-          };
-        });
+        this.messages = data || []
       } catch (err) {
-        console.error('加载留言失败:', err);
-        this.error = '加载留言失败，请稍后重试';
+        console.error('加载留言失败:', err)
+        this.error = '加载留言失败，请稍后重试'
       } finally {
-        this.loading = false;
+        this.loading = false
       }
+    },
+    
+    subscribeToMessages() {
+      // 实时监听新留言
+      const channel = supabase
+        .channel('guestbook_changes')
+        .on('postgres_changes', 
+          { event: 'INSERT', schema: 'public', table: 'guestbook' },
+          (payload) => {
+            // 只有当新留言不在列表中时才添加（避免因为乐观更新导致的重复）
+            if (!this.messages.some(m => m.id === payload.new.id)) {
+              this.messages.unshift(payload.new)
+            }
+          }
+        )
+        .subscribe((status) => {
+          console.log('Realtime subscription status:', status)
+        })
     },
     
     async submitMessage() {
       if (!this.newMessage.name.trim() || !this.newMessage.content.trim()) {
-        return;
+        return
       }
       
-      this.submitting = true;
+      this.submitting = true
       
       try {
-        // 构建 issue body
-        const body = `**昵称：**${this.newMessage.name.trim()}\n\n${this.newMessage.content.trim()}`;
+        const { data, error } = await supabase
+          .from('guestbook')
+          .insert([
+            {
+              name: this.newMessage.name.trim(),
+              content: this.newMessage.content.trim()
+            }
+          ])
+          .select() // 获取插入后的数据，包含 id 和 created_at
         
-        const response = await fetch(
-          `https://api.github.com/repos/${this.owner}/${this.repo}/issues`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              title: `留言 - ${this.newMessage.name.trim()}`,
-              body: body,
-              labels: [this.label]
-            })
+        if (error) throw error
+        
+        // 乐观更新：直接将返回的新留言添加到列表
+        if (data && data.length > 0) {
+          const newMsg = data[0]
+          // 检查是否已经存在（通过 realtime 可能已经添加了）
+          if (!this.messages.some(m => m.id === newMsg.id)) {
+            this.messages.unshift(newMsg)
           }
-        );
-        
-        if (!response.ok) {
-          // GitHub API 对于未认证用户有限制
-          throw new Error('发表留言失败，请稍后重试');
         }
         
         // 清空表单
-        this.newMessage.name = '';
-        this.newMessage.content = '';
+        this.newMessage.name = ''
+        this.newMessage.content = ''
         
-        alert('留言发表成功！');
-        
-        // 重新加载留言列表
-        this.loadMessages();
+        // 可选：显示成功提示，或者直接让用户看到新留言出现
+        // alert('留言发表成功！') 
       } catch (error) {
-        console.error('发表留言失败:', error);
-        alert('发表留言失败。由于 GitHub API 限制，请访问以下链接手动创建留言：\n\nhttps://github.com/' + this.owner + '/' + this.repo + '/issues/new?labels=' + this.label + '&title=留言 - ' + encodeURIComponent(this.newMessage.name));
+        console.error('发表留言失败:', error)
+        alert('发表留言失败，请稍后重试')
       } finally {
-        this.submitting = false;
+        this.submitting = false
       }
     },
     
     formatTime(timestamp) {
-      if (!timestamp) return '刚刚';
+      if (!timestamp) return '刚刚'
       
-      const date = new Date(timestamp);
-      const now = new Date();
-      const diff = now - date;
+      const date = new Date(timestamp)
+      const now = new Date()
+      const diff = now - date
       
       // 小于1分钟
-      if (diff < 60000) return '刚刚';
+      if (diff < 60000) return '刚刚'
       // 小于1小时
-      if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
+      if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`
       // 小于1天
-      if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
+      if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`
       // 小于7天
-      if (diff < 604800000) return `${Math.floor(diff / 86400000)}天前`;
+      if (diff < 604800000) return `${Math.floor(diff / 86400000)}天前`
       
       // 超过7天显示具体日期
-      return date.toLocaleDateString('zh-CN');
+      return date.toLocaleDateString('zh-CN')
     }
   }
 }
@@ -292,15 +290,22 @@ export default {
 }
 
 .loading,
-.no-messages,
-.error {
+.no-messages {
   text-align: center;
   padding: 3rem;
   color: var(--muted);
 }
 
 .error {
+  text-align: center;
+  padding: 3rem;
   color: #e74c3c;
+}
+
+.error-hint {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--muted);
 }
 
 .messages {
@@ -315,6 +320,18 @@ export default {
   border-radius: var(--radius);
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
   transition: transform 0.2s, box-shadow 0.2s;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .message-item:hover {
